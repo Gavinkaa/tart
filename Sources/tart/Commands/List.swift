@@ -1,6 +1,7 @@
 import ArgumentParser
 import Dispatch
 import SwiftUI
+import SwiftDate
 
 fileprivate struct VMInfo: Encodable {
   let Source: String
@@ -10,6 +11,7 @@ fileprivate struct VMInfo: Encodable {
   let SizeOnDisk: Int
   let Running: Bool
   let State: String
+  let LastModified: String
 }
 
 struct List: AsyncParsableCommand {
@@ -39,13 +41,13 @@ struct List: AsyncParsableCommand {
 
     if source == nil || source == "local" {
       infos += sortedInfos(try VMStorageLocal().list().map { (name, vmDir) in
-        try VMInfo(Source: "local", Name: name, Disk: vmDir.sizeGB(), Size: vmDir.allocatedSizeGB(), SizeOnDisk: vmDir.allocatedSizeGB() - vmDir.deduplicatedSizeGB(), Running: vmDir.running(), State: vmDir.state().rawValue)
+        try VMInfo(Source: "local", Name: name, Disk: vmDir.sizeGB(), Size: vmDir.allocatedSizeGB(), SizeOnDisk: vmDir.deduplicatedSizeGB(), Running: vmDir.running(), State: vmDir.state().rawValue, LastModified: DateInRegion(vmDir.accessDate()).toRelative(since: DateInRegion(Date()), unitsStyle: .full))
       })
     }
 
     if source == nil || source == "oci" {
       infos += sortedInfos(try VMStorageOCI().list().map { (name, vmDir, _) in
-        try VMInfo(Source: "OCI", Name: name, Disk: vmDir.sizeGB(), Size: vmDir.allocatedSizeGB(), SizeOnDisk: vmDir.allocatedSizeGB() - vmDir.deduplicatedSizeGB(), Running: vmDir.running(), State: vmDir.state().rawValue)
+        try VMInfo(Source: "OCI", Name: name, Disk: vmDir.sizeGB(), Size: vmDir.allocatedSizeGB(), SizeOnDisk: vmDir.deduplicatedSizeGB(), Running: vmDir.running(), State: vmDir.state().rawValue, LastModified: DateInRegion(vmDir.accessDate()).toRelative(since: DateInRegion(Date()), unitsStyle: .full))
       })
     }
 

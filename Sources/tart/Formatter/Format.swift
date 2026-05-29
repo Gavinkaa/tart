@@ -26,16 +26,28 @@ enum Format: String, ExpressibleByArgument, CaseIterable {
       }
       let table = TextTable<T> { (item: T) in
         let mirroredObject = Mirror(reflecting: item)
-        return mirroredObject.children.enumerated()
-          .filter {(_, element) in
+        var columns: [Column] = []
+        var columnMap: [String: Any] = [:]
+
+        for child in mirroredObject.children {
+          if let label = child.label {
             // Deprecate the "Running" field: only make it available
             // from JSON for backwards-compatibility
-            element.label! != "Running"
+            if label == "Running" {
+              continue
+            }
+            columnMap[label] = child.value
           }
-          .map { (_, element) in
-            let fieldName = element.label!
-            return Column(title: fieldName, value: element.value)
+        }
+
+        let desiredOrder = ["Source", "Name", "Disk", "Size", "SizeOnDisk", "LastModified", "State"]
+        for fieldName in desiredOrder {
+          if let value = columnMap[fieldName] {
+            columns.append(Column(title: fieldName, value: value))
           }
+        }
+
+        return columns
       }
       return table.string(for: data, style: Style.plain)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     case .json:
